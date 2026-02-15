@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hunter x Hunter · Fight Predictor</title>
+<style>
+*{box-sizing:border-box;margin:0;font-family:'Segoe UI',Roboto,sans-serif;}
+body{background:linear-gradient(145deg,#0b1a2e,#1c3e4f);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px;}
+.card{max-width:1300px;width:100%;background:rgba(10,25,35,0.85);border-radius:42px;padding:30px;border:1px solid #4f9da6;}
+h1{font-size:2.5rem;color:#f2e9c7;margin-bottom:10px;}
+.sub{color:#aad0d6;margin-bottom:20px;}
+.fighters-container{display:flex;flex-wrap:wrap;gap:25px;justify-content:center;}
+.fighter-panel{flex:1 1 400px;background:#162f3b;border-radius:32px;padding:22px;border:2px solid #2f7a87;}
+.fighter-panel h2{color:#fad275;font-size:1.6rem;margin-bottom:10px;}
+.nen-badge{background:#1e525e;border-radius:60px;padding:6px 16px;color:#ddf2f5;margin-bottom:15px;display:inline-block;}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.stat-grid input{width:100%;padding:5px;border-radius:6px;border:none;text-align:center;font-weight:600;}
+.vs-divider{font-size:3rem;color:#ec9d3c;display:flex;align-items:center;justify-content:center;padding:10px;}
+.predict-btn{display:block;width:260px;margin:25px auto;background:#eeb14a;border:none;font-size:1.6rem;padding:15px;border-radius:60px;cursor:pointer;}
+.result-area{background:#0d2b32d9;border-radius:30px;padding:20px;margin-top:20px;border:2px solid #569ca8;}
+.winner-banner{font-size:1.8rem;color:#fee3a2;margin-bottom:15px;}
+.calc-steps{line-height:1.6;color:#deeeef;white-space:pre-wrap;}
+label{color:#aad0d6;font-size:0.9rem;}
+select{width:100%;padding:5px;border-radius:6px;border:none;background:#1e525e;color:#ddf2f5;font-weight:600;}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>⛓️ NEN · FIGHT PREDICTOR</h1>
+<div class="sub">rule-based combat simulator · transparent & fair</div>
+
+<div class="fighters-container">
+  <!-- Fighter 1 -->
+  <div class="fighter-panel" id="fighter1Panel">
+    <h2>Fighter 1</h2>
+    <label>Name</label>
+    <input type="text" id="f1Name" placeholder="Enter name">
+    <label>Nen Type</label>
+    <select id="f1NenType">
+      <option>Enhancer</option>
+      <option>Transmuter</option>
+      <option>Emitter</option>
+      <option>Conjurer</option>
+      <option>Manipulator</option>
+      <option>Specialist</option>
+    </select>
+    <div class="stat-grid">
+      <label>Strength<input type="number" id="f1_strength" min="0" max="100" value="0"></label>
+      <label>Speed<input type="number" id="f1_speed" min="0" max="100" value="0"></label>
+      <label>Durability<input type="number" id="f1_durability" min="0" max="100" value="0"></label>
+      <label>Intelligence<input type="number" id="f1_intelligence" min="0" max="100" value="0"></label>
+      <label>Aura Capacity<input type="number" id="f1_auraCapacity" min="0" max="100" value="0"></label>
+      <label>Aura Control<input type="number" id="f1_auraControl" min="0" max="100" value="0"></label>
+      <label>Experience<input type="number" id="f1_experience" min="0" max="100" value="0"></label>
+    </div>
+  </div>
+
+  <div class="vs-divider">⚡ VS ⚡</div>
+
+  <!-- Fighter 2 -->
+  <div class="fighter-panel" id="fighter2Panel">
+    <h2>Fighter 2</h2>
+    <label>Name</label>
+    <input type="text" id="f2Name" placeholder="Enter name">
+    <label>Nen Type</label>
+    <select id="f2NenType">
+      <option>Enhancer</option>
+      <option>Transmuter</option>
+      <option>Emitter</option>
+      <option>Conjurer</option>
+      <option>Manipulator</option>
+      <option>Specialist</option>
+    </select>
+    <div class="stat-grid">
+      <label>Strength<input type="number" id="f2_strength" min="0" max="100" value="0"></label>
+      <label>Speed<input type="number" id="f2_speed" min="0" max="100" value="0"></label>
+      <label>Durability<input type="number" id="f2_durability" min="0" max="100" value="0"></label>
+      <label>Intelligence<input type="number" id="f2_intelligence" min="0" max="100" value="0"></label>
+      <label>Aura Capacity<input type="number" id="f2_auraCapacity" min="0" max="100" value="0"></label>
+      <label>Aura Control<input type="number" id="f2_auraControl" min="0" max="100" value="0"></label>
+      <label>Experience<input type="number" id="f2_experience" min="0" max="100" value="0"></label>
+    </div>
+  </div>
+</div>
+
+<button class="predict-btn" id="predictBtn">⚔️ PREDICT ⚔️</button>
+
+<div class="result-area" id="resultArea" style="display:none;">
+  <div class="winner-banner" id="winnerName"></div>
+  <div class="calc-steps" id="calcExplanation"></div>
+</div>
+
+<script>
+(function(){
+const WEIGHTS = {strength:1.8,speed:1.5,durability:1.4,intelligence:1.2,auraCapacity:1.6,auraControl:1.3,experience:1.0};
+const nenAdvantages = {
+  'Enhancer':{strongAgainst:['Transmuter','Emitter']},
+  'Transmuter':{strongAgainst:['Conjurer','Manipulator']},
+  'Emitter':{strongAgainst:['Enhancer','Manipulator']},
+  'Conjurer':{strongAgainst:['Emitter','Transmuter']},
+  'Manipulator':{strongAgainst:['Conjurer','Enhancer']},
+  'Specialist':{strongAgainst:[]}
+};
+
+function getStats(fId){
+  return {
+    name: document.getElementById(fId+'_Name')?.value || fId,
+    nenType: document.getElementById(fId+'_NenType')?.value || 'Enhancer',
+    strength: +document.getElementById(fId+'_strength').value || 0,
+    speed: +document.getElementById(fId+'_speed').value || 0,
+    durability: +document.getElementById(fId+'_durability').value || 0,
+    intelligence: +document.getElementById(fId+'_intelligence').value || 0,
+    auraCapacity: +document.getElementById(fId+'_auraCapacity').value || 0,
+    auraControl: +document.getElementById(fId+'_auraControl').value || 0,
+    experience: +document.getElementById(fId+'_experience').value || 0
+  };
+}
+
+function computeScore(f){
+  let total=0;
+  for(const stat in WEIGHTS) total+=f[stat]*WEIGHTS[stat];
+  return total;
+}
+
+function nenMultiplier(att,def){
+  if(nenAdvantages[att] && nenAdvantages[att].strongAgainst.includes(def)) return 1.15;
+  return 1;
+}
+
+function predict(){
+  const f1=getStats('f1');
+  const f2=getStats('f2');
+  const raw1=computeScore(f1);
+  const raw2=computeScore(f2);
+  const m1=nenMultiplier(f1.nenType,f2.nenType);
+  const m2=nenMultiplier(f2.nenType,f1.nenType);
+  const final1=raw1*m1;
+  const final2=raw2*m2;
+  let winner='';
+  if(final1>final2) winner=`${f1.name} WINS`;
+  else if(final2>final1) winner=`${f2.name} WINS`;
+  else winner='DRAW — both fall';
+
+  document.getElementById('winnerName').innerText=winner;
+
+  let explanation='';
+  explanation+=`⚙️ BASE STATS\n`;
+  explanation+=`${f1.name}: str ${f1.strength} spd ${f1.speed} dur ${f1.durability} int ${f1.intelligence} auraCap ${f1.auraCapacity} auraCtrl ${f1.auraControl} exp ${f1.experience}\n`;
+  explanation+=`${f2.name}: str ${f2.strength} spd ${f2.speed} dur ${f2.durability} int ${f2.intelligence} auraCap ${f2.auraCapacity} auraCtrl ${f2.auraControl} exp ${f2.experience}\n\n`;
+
+  explanation+=`📊 WEIGHTED SCORE (raw)\n`;
+  explanation+=`${f1.name}: ${raw1.toFixed(2)}\n${f2.name}: ${raw2.toFixed(2)}\n\n`;
+  explanation+=`🌀 NEN MULTIPLIER\n${f1.name}: ×${m1}\n${f2.name}: ×${m2}\n\n`;
+  explanation+=`🏆 FINAL SCORE\n${f1.name}: ${(final1).toFixed(2)}\n${f2.name}: ${(final2).toFixed(2)}\n`;
+
+  document.getElementById('calcExplanation').innerText=explanation;
+  resultArea.style.display='block';
+}
+
+document.getElementById('predictBtn').addEventListener('click',predict);
+})();
+</script>
+</body>
+</html>
